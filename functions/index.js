@@ -32,15 +32,30 @@ exports.fetchLeaderboard = functions.https.onRequest(async (req, res) => {
   try {
     // Fetch leaderboard data
     const response = await axios.get(leaderboardApiUrl);
-    const leaderboard = response.data.response.results[0];
+    console.log("API Response:", JSON.stringify(response.data, null, 2));
+    const leaderboard = response.data.response;
 
-    // Normalize and fetch scores
+    // Check if leaderboard data exists
+    if (!leaderboard || !leaderboard.scores_list_custom_score) {
+      throw new Error("Leaderboard data or scores list is missing");
+    }
+
+    // Fetch scores in smaller chunks to avoid large query strings
     const scoreIds = leaderboard.scores_list_custom_score;
-    const scoresApiUrl = `https://platform.acexr.com/api/1.1/obj/score?constraints=[{"key":"_id","constraint_type":"in","value":[${scoreIds
-        .map((id) => `"${id}"`)
-        .join(",")}]}]`;
-    const scoreResponse = await axios.get(scoresApiUrl);
-    const scores = scoreResponse.data.response.results;
+    const chunkSize = 50; // Adjust based on API limits
+    const scoreChunks = [];
+    for (let i = 0; i < scoreIds.length; i += chunkSize) {
+      scoreChunks.push(scoreIds.slice(i, i + chunkSize));
+    }
+
+    const scores = [];
+    for (const chunk of scoreChunks) {
+      const scoresApiUrl = `https://platform.acexr.com/api/1.1/obj/score?constraints=[{"key":"_id","constraint_type":"in","value":[${chunk
+          .map((id) => `"${id}"`)
+          .join(",")}]}]`;
+      const scoreResponse = await axios.get(scoresApiUrl);
+      scores.push(...scoreResponse.data.response.results);
+    }
 
     // Store leaderboard data in Firestore
     const stageDoc = db
@@ -65,11 +80,10 @@ exports.fetchLeaderboard = functions.https.onRequest(async (req, res) => {
     await batch.commit();
     res.status(200).send("Leaderboard data fetched and stored successfully.");
   } catch (error) {
-    console.error(error.message);
+    console.error("Error fetching leaderboard data:", error.stack);
     res.status(500).send("Error fetching leaderboard data.");
   }
 });
-
 
 exports.getLeaderboard = functions.https.onRequest(async (req, res) => {
   const stageId = req.query.stageId;

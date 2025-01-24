@@ -6,6 +6,7 @@
   "functions": [
     {
       "source": "functions",
+      "runtime": "nodejs18",
       "codebase": "default",
       "ignore": [
         "node_modules",
@@ -26,5 +27,19 @@
       "**/.*",
       "**/node_modules/**"
     ]
+  },
+  "emulators": {
+    "firestore": {
+      "host": "localhost",
+      "port": 8081
+    },
+    "functions": {
+      "host": "localhost",
+      "port": 5001
+    },
+    "hosting": {
+      "host": "localhost",
+      "port": 5002
+    }
   }
 }
