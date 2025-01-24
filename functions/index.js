@@ -7,8 +7,8 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+// const {onRequest} = require("firebase-functions/v2/https");
+// const logger = require("firebase-functions/logger");
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
@@ -17,3 +17,88 @@ const logger = require("firebase-functions/logger");
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const axios = require("axios");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+exports.fetchLeaderboard = functions.https.onRequest(async (req, res) => {
+  const leaderboardApiUrl =
+    "https://platform.acexr.com/api/1.1/obj/leaderboard/1702862655868x214682417459388640";
+
+  try {
+    // Fetch leaderboard data
+    const response = await axios.get(leaderboardApiUrl);
+    const leaderboard = response.data.response.results[0];
+
+    // Normalize and fetch scores
+    const scoreIds = leaderboard.scores_list_custom_score;
+    const scoresApiUrl = `https://platform.acexr.com/api/1.1/obj/score?constraints=[{"key":"_id","constraint_type":"in","value":[${scoreIds
+        .map((id) => `"${id}"`)
+        .join(",")}]}]`;
+    const scoreResponse = await axios.get(scoresApiUrl);
+    const scores = scoreResponse.data.response.results;
+
+    // Store leaderboard data in Firestore
+    const stageDoc = db
+        .collection("leaderboards")
+        .doc(leaderboard.stageid_text);
+    await stageDoc.set({
+      stageName: leaderboard.stagename_text,
+      threshold: leaderboard.threshold_number,
+    });
+
+    const batch = db.batch();
+    scores.forEach((score) => {
+      const scoreRef = stageDoc.collection("scores").doc(score._id);
+      batch.set(scoreRef, {
+        displayname: score.displayname_text,
+        hitFactor: score.hitfactor_number,
+        rank: score.acerank_option_rank,
+        timeInSeconds: score.timeinseconds_number,
+      });
+    });
+
+    await batch.commit();
+    res.status(200).send("Leaderboard data fetched and stored successfully.");
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Error fetching leaderboard data.");
+  }
+});
+
+
+exports.getLeaderboard = functions.https.onRequest(async (req, res) => {
+  const stageId = req.query.stageId;
+  if (!stageId) {
+    res.status(400).send("stageId query parameter is required");
+    return;
+  }
+
+  try {
+    const leaderboardRef = db.collection("leaderboards").doc(stageId);
+    const leaderboardDoc = await leaderboardRef.get();
+
+    if (!leaderboardDoc.exists) {
+      res.status(404).send("Leaderboard not found");
+      return;
+    }
+
+    const scoresSnapshot = await leaderboardRef
+        .collection("scores")
+        .orderBy("hitFactor", "desc")
+        .get();
+
+    const scores = scoresSnapshot.docs.map((doc) => doc.data());
+    res.status(200).json({
+      stageInfo: leaderboardDoc.data(),
+      scores,
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).send("Failed to retrieve leaderboard data");
+  }
+});
