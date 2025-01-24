@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
 
-const BASE_API_URL = '<FIREBASE_FUNCTION_URL>';
+const BASE_API_URL = 'https://us-central1-ace-leaderboard.cloudfunctions.net';
 
 
 

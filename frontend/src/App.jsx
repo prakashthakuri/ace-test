@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Title } from '@mantine/core';
+import { Paper, Stack, Container, Title } from '@mantine/core';
 import './App.css'
 import ImportButton from './components/ImportButton';
 import LeaderboardTable from './components/LeaderboardTable';
@@ -7,13 +7,17 @@ import LeaderboardTable from './components/LeaderboardTable';
 function App() {
   const stageId = '1702862654102x427489097778987000'; 
   return (
-    <Container>
-        <Title order={1} align="center" style={{ marginBottom: '2rem' }}>
-            Leaderboard
+    <Container size="lg" padding="md">
+    <Paper shadow="sm" radius="md" withBorder padding="xl" className="app-paper">
+      <Stack align="center" spacing="lg">
+        <Title order={1} className="app-title">
+          Leaderboard
         </Title>
         <ImportButton />
         <LeaderboardTable stageId={stageId} />
-    </Container>
+      </Stack>
+    </Paper>
+  </Container>
 );
 }
 
