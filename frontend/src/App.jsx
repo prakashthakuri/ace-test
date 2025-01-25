@@ -1,24 +1,32 @@
 import React from 'react';
-import { Paper, Stack, Container, Title } from '@mantine/core';
-import './App.css'
 import ImportButton from './components/ImportButton';
 import LeaderboardTable from './components/LeaderboardTable';
 
 function App() {
-  const stageId = '1702862654102x427489097778987000'; 
+  const stageId = '1702862654102x427489097778987000';
+
   return (
-    <Container size="lg" padding="md">
-    <Paper shadow="sm" radius="md" withBorder padding="xl" className="app-paper">
-      <Stack align="center" spacing="lg">
-        <Title order={1} className="app-title">
-          Leaderboard
-        </Title>
-        <ImportButton />
+    <div className="min-h-screen bg-game-900 p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="bg-game-800 rounded-xl shadow-lg p-8">
+          <div className="flex flex-col items-center space-y-6">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">
+              Leaderboard
+            </h1>
+            <div className="w-full max-w-sm">
+              <ImportButton />
+            </div>
+            <div className="px-4 py-1.5 bg-game-700/50 rounded-full border border-neon-blue/20 text-neon-blue text-sm font-mono">
+              {stageId}
+            </div>
+          </div>
+        </div>
+
+        {/* Leaderboard Content */}
         <LeaderboardTable stageId={stageId} />
-      </Stack>
-    </Paper>
-  </Container>
-);
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
