@@ -9,7 +9,9 @@ module.exports = {
   extends: [
     "eslint:recommended",
     "google",
+    "plugin:jest/recommended",
   ],
+  plugins: ["jest"],
   rules: {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
@@ -19,9 +21,9 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["**/*.spec.*"],
+      files: ["**/*.spec.*", "**/*.test.*"],
       env: {
-        mocha: true,
+        jest: true,
       },
       rules: {},
     },
