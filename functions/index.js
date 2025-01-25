@@ -2,7 +2,7 @@ const {
   fetchLeaderboard,
   getLeaderboard,
   getAllStageIds,
-} = require("./leaderboard");
+} = require("./functions-route/leaderboard");
 
 module.exports = {
   fetchLeaderboard,
