@@ -1,11 +1,5 @@
-const {
-  fetchLeaderboard,
-  getLeaderboard,
-  getAllStageIds,
-} = require("./functions-route/leaderboard");
+const leaderboardFunctions = require("./functions-route/leaderboard");
 
-module.exports = {
-  fetchLeaderboard,
-  getLeaderboard,
-  getAllStageIds,
-};
+exports.fetchLeaderboard = leaderboardFunctions.fetchLeaderboard;
+exports.getLeaderboard = leaderboardFunctions.getLeaderboard;
+exports.getAllStageIds = leaderboardFunctions.getAllStageIds;
