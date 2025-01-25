@@ -8,28 +8,6 @@ import SearchBar from "./Searchbar";
 
 const ITEMS_PER_PAGE = 10;
 
-const getRankColor = (rank) => {
-  const colors = {
-    Diamond: "bg-blue-700 text-white border-blue-500",
-    Platinum: "bg-purple-700 text-white border-purple-500",
-    Gold: "bg-yellow-700 text-white border-yellow-500",
-    Silver: "bg-gray-600 text-white border-gray-400",
-    Bronze: "bg-orange-700 text-white border-orange-500",
-    Steel: "bg-zinc-700 text-white border-zinc-500",
-    Ace: "bg-green-700 text-white border-green-500",
-  };
-  return colors[rank] || "bg-gray-700 text-white border-gray-400";
-};
-
-// Format time into seconds or minutes + seconds
-const formatTime = (timeInSeconds) => {
-  if (timeInSeconds >= 60) {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = (timeInSeconds % 60).toFixed(1);
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${(timeInSeconds * 100).toFixed(1)}s`;
-};
 
 
 const LeaderboardTable = ({ initialStageId }) => {
@@ -39,7 +17,7 @@ const LeaderboardTable = ({ initialStageId }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: "hitFactor", direction: "desc" });
 
-  const { data, error, isError, isLoading, refetch } = useFetchLeaderboard(isSearching ? stageId : null);
+  const { data, error, isError, isFetching, refetch } = useFetchLeaderboard(isSearching ? stageId : null);
 
   const handleSearch = () => {
     if (stageId.trim()) {
@@ -94,7 +72,7 @@ const LeaderboardTable = ({ initialStageId }) => {
         stageId={stageId}
         setStageId={setStageId}
         handleSearch={handleSearch}
-        isLoading={isLoading}
+        isFetching={isFetching}
         isSearching={isSearching}
       />
        <LeaderboardHeader
