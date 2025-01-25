@@ -1,6 +1,6 @@
+const admin = require("../firebaseInit");
 const { logger } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/v2/https");
-const { getFirestore } = require("firebase-admin/firestore");
 const cors = require("cors")({ origin: true });
 const axios = require("axios");
 const {
@@ -9,6 +9,7 @@ const {
   getLeaderboardScores,
 } = require("../util/util");
 
+const getFirestore = admin.firestore();
 /**
  * Cloud Function to fetch leaderboard data from an external API and store it in Firestore.
  *
@@ -88,7 +89,7 @@ exports.getLeaderboard = onRequest(
             return;
           }
 
-          const stageDoc = await getFirestore()
+          const stageDoc = await getFirestore
               .collection("leaderboards")
               .doc(stageId)
               .get();
@@ -133,7 +134,7 @@ exports.getAllStageIds = onRequest(
     async (req, res) => {
       return cors(req, res, async () => {
         try {
-          const leaderboardsSnapshot = await getFirestore()
+          const leaderboardsSnapshot = await getFirestore
               .collection("leaderboards")
               .get();
 
