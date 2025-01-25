@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
 
-const BASE_API_URL = "https://us-central1-ace-leaderboard.cloudfunctions.net";
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
 
 // Generic function to fetch leaderboard data
 const fetchLeaderboard = async ({ queryKey }) => {
