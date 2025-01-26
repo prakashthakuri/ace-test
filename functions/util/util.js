@@ -1,6 +1,5 @@
 const axios = require("axios");
-const { getFirestore } = require("firebase-admin/firestore");
-
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 
 /**
  * Fetches scores in chunks from an external API.

@@ -8,6 +8,8 @@ const {
   storeLeaderboardData,
   getLeaderboardScores,
 } = require("../util/util");
+const { onRequest } = require("firebase-functions/v2/https");
+
 
 const getFirestore = admin.firestore();
 /**
@@ -79,7 +81,7 @@ exports.fetchLeaderboard = onRequest({
  * retrieves its associated scores, and returns the results. If the `stageId` is missing or
  * the leaderboard does not exist, it responds with appropriate error messages.
  */
-exports.getLeaderboard = functions.https.onRequest(
+exports.getLeaderboard = onRequest(
     {
       invoker: "public",
     },
