@@ -19,6 +19,12 @@ const importLeaderboard = async () => {
   return response.data;
 };
 
+const fetchStageIds = async () => {
+  const response = await axios.get(`${BASE_API_URL}/getAllStageIds`);
+  return response.data;
+};
+
+
 export const useFetchLeaderboard = (stageId) => {
   const { data, isFetching, error, refetch, isError } = useQuery({
     queryKey: ["leaderboard", stageId],
@@ -40,6 +46,12 @@ export const useImportLeaderboard = () => {
   const queryClient = useQueryClient();
   const {mutate, isPending} = useMutation({
     mutationFn: importLeaderboard,
+    onMutate: () => {
+      setToastMessage({
+        message: "Your data is being imported",
+        type: "info"
+      });
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries(["leaderboard"]);
       console.log(data)
@@ -63,4 +75,17 @@ export const useImportLeaderboard = () => {
     isPending,
     toastMessage,
   };
+};
+
+
+export const useStageIds = () => {
+  const { data, isFetching } = useQuery({
+    queryKey: ["stageIds"],
+    queryFn: async () => {
+      const response = await axios.get(`${BASE_API_URL}/getAllStageIds`);
+      return response.data;
+    }
+  });
+
+  return { data, isFetching };
 };

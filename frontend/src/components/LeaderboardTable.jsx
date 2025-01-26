@@ -8,8 +8,6 @@ import SearchBar from "./Searchbar";
 
 const ITEMS_PER_PAGE = 10;
 
-
-
 const LeaderboardTable = ({ initialStageId }) => {
   const [stageId, setStageId] = useState(initialStageId || "");
   const [isSearching, setIsSearching] = useState(!!initialStageId);
@@ -17,7 +15,7 @@ const LeaderboardTable = ({ initialStageId }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: "hitFactor", direction: "desc" });
 
-  const { data, error, isError, isFetching, refetch } = useFetchLeaderboard(isSearching ? stageId : null);
+  const { data, error, isError, isFetching, refetch } = useFetchLeaderboard(stageId || null);
 
   const handleSearch = () => {
     if (stageId.trim()) {
@@ -42,17 +40,23 @@ const LeaderboardTable = ({ initialStageId }) => {
     if (!data?.scores) return [];
 
     let filtered = data.scores.filter((score) =>
-      score.displayname.toLowerCase().includes(searchQuery.toLowerCase())
+      score.displayName?.toLowerCase()?.includes(searchQuery.toLowerCase())
     );
 
     return filtered.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (typeof aValue === "number") {
+      if (sortConfig.key === "hitFactor") {
+        const aValue = parseFloat(a.hitFactor) || 0;
+        const bValue = parseFloat(b.hitFactor) || 0;
         return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
       }
-
+      
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      
       return sortConfig.direction === "asc"
         ? String(aValue).localeCompare(String(bValue))
         : String(bValue).localeCompare(String(aValue));
@@ -65,9 +69,25 @@ const LeaderboardTable = ({ initialStageId }) => {
     currentPage * ITEMS_PER_PAGE
   );
 
+  if (!stageId) {
+    return (
+      <div className="min-h-screen bg-white bg-opacity-80 space-y-6 p-4">
+        <SearchBar
+          stageId={stageId}
+          setStageId={setStageId}
+          handleSearch={handleSearch}
+          isFetching={isFetching}
+          isSearching={isSearching}
+        />
+        <div className="text-center text-gray-600 mt-8">
+          Please enter a Stage ID to view the leaderboard
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white bg-opacity-80 space-y-6 p-4">
-      
       <SearchBar
         stageId={stageId}
         setStageId={setStageId}
@@ -75,15 +95,6 @@ const LeaderboardTable = ({ initialStageId }) => {
         isFetching={isFetching}
         isSearching={isSearching}
       />
-       <LeaderboardHeader
-        stageName={data?.stage?.stageName}
-        threshold={data?.stage?.threshold}
-        totalPlayers={data?.scores?.length}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        refetch={refetch}
-      />
-
 
       {isError ? (
         <div className="bg-red-100 border border-red-500 rounded-xl p-6 text-red-500">
@@ -91,6 +102,14 @@ const LeaderboardTable = ({ initialStageId }) => {
         </div>
       ) : (
         <>
+           <LeaderboardHeader
+          stageName={data?.stage?.stageName}
+          threshold={data?.stage?.threshold}
+          totalPlayers={data?.scores?.length}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          refetch={refetch}
+        />
           <div className="rounded-xl overflow-hidden bg-white bg-opacity-50 border border-gray-300">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -99,11 +118,11 @@ const LeaderboardTable = ({ initialStageId }) => {
                     <th className="px-6 py-4 text-left text-sm font-bold text-black">#</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-black">
                       <button
-                        onClick={() => handleSort("displayname")}
+                        onClick={() => handleSort("displayname_text")}
                         className="flex items-center gap-1 hover:text-gray-600 transition-colors"
                       >
                         Player
-                        <SortIcon column="displayname" />
+                        <SortIcon column="displayname_text" />
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-black">
@@ -126,27 +145,28 @@ const LeaderboardTable = ({ initialStageId }) => {
                     </th>
                     <th className="px-6 py-4 text-right text-sm font-bold text-black">
                       <button
-                        onClick={() => handleSort("timeInSeconds")}
+                        onClick={() => handleSort("timeinseconds_number")}
                         className="flex items-center gap-1 justify-end hover:text-gray-600 transition-colors w-full"
                       >
                         Time
-                        <SortIcon column="timeInSeconds" />
+                        <SortIcon column="timeinseconds_number" />
                       </button>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-300">
-                {paginatedData.map((score, index) => (
-                <TableData
-                  key={score.id}
-                  score={score}
-                  position={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                />
-              ))}
+                  {paginatedData.map((score, index) => (
+                    <TableData
+                      key={`${score.displayName}-${score.hitFactor}-${index}`}
+                      score={score}
+                      position={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
-            <Pagination currentPage={currentPage} totalPages={totalPages} setCurrentPage={setCurrentPage} />          </div>
+            <Pagination currentPage={currentPage} totalPages={totalPages} setCurrentPage={setCurrentPage} />
+          </div>
         </>
       )}
     </div>

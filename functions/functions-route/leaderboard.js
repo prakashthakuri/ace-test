@@ -1,6 +1,6 @@
 const admin = require("../firebaseInit");
 const { logger } = require("firebase-functions");
-const { onRequest } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 const cors = require("cors")({ origin: true });
 const axios = require("axios");
 const {
@@ -21,48 +21,52 @@ const getFirestore = admin.firestore();
  * and stores the results in Firestore. It uses CORS to handle cross-origin requests and logs
  * any errors encountered during the operation.
  */
-exports.fetchLeaderboard = onRequest(
-    {
-      invoker: "public",
-    },
-    async (req, res) => {
-      return cors(req, res, async () => {
-        const leaderboardApiUrl =
-        "https://platform.acexr.com/api/1.1/obj/leaderboard/1702862655868x214682417459388640";
+exports.fetchLeaderboard = onRequest({
+  invoker: 'public',
+  timeoutSeconds: 540,
+}, async (req, res) => {
+  return cors(req, res, async () => {
+    const startTime = Date.now();
+    const TIMEOUT = 10000;
+    const timeoutBuffer = 1000;
+    const processedStages = [];
 
-        try {
-          const response = await axios.get(leaderboardApiUrl);
-          const leaderboard = response.data.response;
+    try {
+      const response = await axios.get(
+        "https://platform.acexr.com/api/1.1/obj/leaderboard", 
+        { timeout: 3000 }
+      );
+      
+      if (!response.data?.response?.results) {
+        throw new Error("No results found");
+      }
 
-          if (!leaderboard.scores_list_custom_score) {
-            throw new Error("Leaderboard data or scores list is missing");
-          }
+      for (const result of response.data.response.results) {
+        if (Date.now() - startTime > TIMEOUT - timeoutBuffer) break;
 
-          logger.info("Fetched leaderboard data", {
-            leaderboardId: leaderboard._id,
-          });
+        const scores = await fetchScoresInChunks(result.scores_list_custom_score || []);
+        await storeLeaderboardData(result, scores);
+        processedStages.push(result.stage_custom_stage);
+      }
 
-          const scores = await fetchScoresInChunks(
-              leaderboard.scores_list_custom_score,
-          );
-          await storeLeaderboardData(leaderboard, scores);
-
-          res.status(200).json({
-            message: "Leaderboard data fetched and stored successfully",
-            scoresCount: scores.length,
-          });
-        } catch (error) {
-          logger.error("Error fetching leaderboard data", {
-            error: error.message,
-          });
-          res.status(500).json({
-            error: "Error fetching leaderboard data",
-            details: error.message,
-          });
-        }
+      res.status(200).json({
+        message: "Process completed",
+        status: processedStages.length < response.data.response.results.length ? "partial" : "complete",
+        processedStages: processedStages.length,
+        totalStages: response.data.response.results.length,
+        timeElapsed: Date.now() - startTime
       });
-    },
-);
+    } catch (error) {
+      logger.error("Error", { error: error.message });
+      res.status(200).json({
+        status: "error",
+        processedStages: processedStages.length,
+        error: error.message,
+        timeElapsed: Date.now() - startTime
+      });
+    }
+  });
+});
 
 /**
  * Cloud Function to retrieve leaderboard and associated scores from Firestore.
@@ -75,7 +79,7 @@ exports.fetchLeaderboard = onRequest(
  * retrieves its associated scores, and returns the results. If the `stageId` is missing or
  * the leaderboard does not exist, it responds with appropriate error messages.
  */
-exports.getLeaderboard = onRequest(
+exports.getLeaderboard = functions.https.onRequest(
     {
       invoker: "public",
     },
@@ -127,30 +131,32 @@ exports.getLeaderboard = onRequest(
  * and returns the list along with a count of the total IDs found. It logs any errors
  * encountered during the operation.
  */
+
 exports.getAllStageIds = onRequest(
-    {
-      invoker: "public",
-    },
-    async (req, res) => {
-      return cors(req, res, async () => {
-        try {
-          const leaderboardsSnapshot = await getFirestore
-              .collection("leaderboards")
-              .get();
+  {
+    invoker: "public",
+  },
+  async (req, res) => {
+    return cors(req, res, async () => {
+      try {
+        const db = getFirestore();
+        const leaderboardsSnapshot = await db
+          .collection("leaderboards")
+          .get();
 
-          const stageIds = leaderboardsSnapshot.docs.map((doc) => doc.id);
+        const stageIds = leaderboardsSnapshot.docs.map((doc) => doc.id);
 
-          res.status(200).json({
-            stageIds,
-            count: stageIds.length,
-          });
-        } catch (error) {
-          logger.error("Error retrieving stage IDs", { error: error.message });
-          res.status(500).json({
-            error: "Error retrieving stage IDs",
-            details: error.message,
-          });
-        }
-      });
-    },
+        res.status(200).json({
+          stageIds,
+          count: stageIds.length,
+        });
+      } catch (error) {
+        logger.error("Error retrieving stage IDs", { error: error.message });
+        res.status(500).json({
+          error: "Error retrieving stage IDs",
+          details: error.message,
+        });
+      }
+    });
+  },
 );

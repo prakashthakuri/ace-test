@@ -12,22 +12,17 @@ const { getFirestore } = require("firebase-admin/firestore");
  */
 async function fetchScoresInChunks(scoreIds) {
   const chunkSize = 50;
-  const scoreChunks = [];
-
+  let processedScores = [];
+  
   for (let i = 0; i < scoreIds.length; i += chunkSize) {
-    scoreChunks.push(scoreIds.slice(i, i + chunkSize));
-  }
-
-  const scores = [];
-  for (const chunk of scoreChunks) {
+    const chunk = scoreIds.slice(i, i + chunkSize);
     const scoresApiUrl = `https://platform.acexr.com/api/1.1/obj/score?constraints=[{"key":"_id","constraint_type":"in","value":[${chunk
-        .map((id) => `"${id}"`)
-        .join(",")}]}]`;
+      .map((id) => `"${id}"`)
+      .join(",")}]}]`;
     const scoreResponse = await axios.get(scoresApiUrl);
-    scores.push(...scoreResponse.data.response.results);
+    processedScores.push(...scoreResponse.data.response.results);
   }
-
-  return scores;
+  return processedScores;
 }
 
 /**
@@ -45,13 +40,14 @@ async function fetchScoresInChunks(scoreIds) {
  */
 async function storeLeaderboardData(leaderboard, scores) {
   const stageDoc = getFirestore()
-      .collection("leaderboards")
-      .doc(leaderboard.stageid_text);
+    .collection("leaderboards")
+    .doc(leaderboard.stageid_text);
 
   await stageDoc.set({
     stageName: leaderboard.stagename_text,
     threshold: leaderboard.threshold_number,
-  });
+    lastUpdated: Timestamp.now()
+  }, { merge: true });
 
   const batch = getFirestore().batch();
   scores.forEach((score) => {
@@ -61,7 +57,8 @@ async function storeLeaderboardData(leaderboard, scores) {
       hitFactor: score.hitfactor_number,
       rank: score.acerank_option_rank,
       timeInSeconds: score.timeinseconds_number,
-    });
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
   });
 
   await batch.commit();
@@ -79,10 +76,10 @@ async function storeLeaderboardData(leaderboard, scores) {
  */
 async function getLeaderboardScores(stageDoc) {
   const scoresSnapshot = await stageDoc.ref
-      .collection("scores")
-      .orderBy("hitFactor", "desc")
-      .limit(100)
-      .get();
+    .collection("scores")
+    .orderBy("hitFactor", "desc")
+    .limit(100)
+    .get();
 
   return scoresSnapshot.docs.map((doc) => ({
     id: doc.id,
