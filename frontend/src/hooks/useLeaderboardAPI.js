@@ -51,7 +51,7 @@ export const useFetchLeaderboard = (stageId) => {
   const { data, isFetching, error, refetch, isError } = useQuery({
     queryKey: ["leaderboard", stageId],
     queryFn: fetchLeaderboard,
-    enabled: !!stageId,
+    enabled: false,
     staleTime: 60000,
   });
 

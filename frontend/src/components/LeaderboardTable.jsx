@@ -10,26 +10,21 @@ const ITEMS_PER_PAGE = 10;
 
 const LeaderboardTable = ({ initialStageId }) => {
   const [stageId, setStageId] = useState(initialStageId || "");
-  const [isSearching, setIsSearching] = useState(!!initialStageId);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: "hitFactor", direction: "desc" });
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const { data, error, isError, isFetching, refetch } = useFetchLeaderboard(stageId || null);
+  const { data, error, isError, isFetching, refetch } = useFetchLeaderboard(stageId);
 
   const handleSearch = () => {
     if (stageId.trim()) {
-      setIsSearching(true);
+      refetch(); 
       setCurrentPage(1);
+      setHasSearched(true)
     }
   };
 
-  const handleSort = (key) => {
-    setSortConfig((prevConfig) => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === "desc" ? "asc" : "desc",
-    }));
-  };
 
   const SortIcon = ({ column }) => {
     if (sortConfig.key !== column) return null;
@@ -69,48 +64,39 @@ const LeaderboardTable = ({ initialStageId }) => {
     currentPage * ITEMS_PER_PAGE
   );
 
-  if (!stageId) {
-    return (
-      <div className="min-h-screen bg-white bg-opacity-80 space-y-6 p-4">
-        <SearchBar
-          stageId={stageId}
-          setStageId={setStageId}
-          handleSearch={handleSearch}
-          isFetching={isFetching}
-          isSearching={isSearching}
-        />
-        <div className="text-center text-gray-600 mt-8">
-          Please enter a Stage ID to view the leaderboard
-        </div>
-      </div>
-    );
-  }
+  const handleSort = (key) => {
+    setSortConfig((prevConfig) => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === "desc" ? "asc" : "desc",
+    }));
+  };
+
 
   return (
-    <div className="min-h-screen bg-white bg-opacity-80 space-y-6 p-4">
+    <div className="min-h-screen bg-white/80 space-y-6 p-4">
       <SearchBar
         stageId={stageId}
         setStageId={setStageId}
         handleSearch={handleSearch}
         isFetching={isFetching}
-        isSearching={isSearching}
       />
-
-      {isError ? (
+      {hasSearched && (
+        <>
+         {isError ? (
         <div className="bg-red-100 border border-red-500 rounded-xl p-6 text-red-500">
-          {error?.message || "Failed to load leaderboard data. Please check the Stage ID and try again."}
+          {`Failed to load leaderboard data. Please check the Stage ID and try again. Error: ${error?.message}`}
         </div>
       ) : (
         <>
-           <LeaderboardHeader
-          stageName={data?.stage?.stageName}
-          threshold={data?.stage?.threshold}
-          totalPlayers={data?.scores?.length}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          refetch={refetch}
-        />
-          <div className="rounded-xl overflow-hidden bg-white bg-opacity-50 border border-gray-300">
+          <LeaderboardHeader
+            stageName={data?.stage?.stageName}
+            threshold={data?.stage?.threshold}
+            totalPlayers={data?.scores?.length}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            refetch={refetch}
+          />
+          <div className="rounded-xl overflow-hidden bg-white/50 border border-gray-300">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -169,6 +155,11 @@ const LeaderboardTable = ({ initialStageId }) => {
           </div>
         </>
       )}
+        </>
+
+      )}
+
+     
     </div>
   );
 };

@@ -41,20 +41,27 @@ describe('LeaderboardTable', () => {
 
   it('handles sorting by different columns', async () => {
     render(<LeaderboardTable initialStageId="123" />);
-    const hitFactorButton = screen.getByText('Hit Factor');
-    expect(hitFactorButton).toBeInTheDocument();
-  
-    await fireEvent.click(hitFactorButton);
-    await fireEvent.click(hitFactorButton);
-  
-    const displayNameButton = screen.getByText('Player');
-    await fireEvent.click(displayNameButton);
+    fireEvent.click(screen.getByRole('button', { name: /search/i }));
+    const hitFactorBtn = screen.getByRole('button', { name: /hit factor/i });
+    expect(hitFactorBtn).toBeInTheDocument();
+    await fireEvent.click(hitFactorBtn);
   });
-  
 
   it('handles initial stage ID', () => {
     render(<LeaderboardTable initialStageId="123" />);
     expect(useFetchLeaderboard).toHaveBeenCalledWith("123");
   });
-  
+
+  it('handles error state', () => {
+    useFetchLeaderboard.mockReturnValue({
+      error: new Error('Test error'),
+      isError: true,
+      isFetching: false,
+      refetch: vi.fn()
+    });
+    render(<LeaderboardTable initialStageId="123" />);
+    fireEvent.click(screen.getByRole('button', { name: /search/i }));
+    expect(screen.getByText(/Failed to load leaderboard data/)).toBeInTheDocument();
+  });
+
 });
